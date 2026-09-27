@@ -120,6 +120,7 @@ if(window.emailjs) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 const WEEKDAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
 const NITAQS = ['الأول','الثاني','الثالث'];
 const SPECIALIST_NITAQ = '__spec__';
+const SPECIALIST_DOMAINS = ['اخصائي نواتج التعلم','اخصائي النشاط الطلابي','اخصائي التوجيه الطلابي'];
 const SPECIALIST_SUPERVISORS = [
   {id:'sp_spec1', name:'يحي عامر يحي حمدي', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ},
   {id:'sp_spec2', name:'هاني عبدالله زيد الدريهم', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ},
@@ -188,13 +189,15 @@ function render(){
 }
 
 function renderForm(){
-  const nitaqOptions = '<option value="">اختر النطاق…</option>'+NITAQS.map(n=>'<option value="'+n+'" '+(state.nitaq===n?'selected':'')+'>النطاق '+n+'</option>').join('')+
-    '<option value="'+SPECIALIST_NITAQ+'" '+(state.nitaq===SPECIALIST_NITAQ?'selected':'')+'>الاختصاصيون (جميع المدارس)</option>';
-  let sups = (state.nitaq===SPECIALIST_NITAQ ? SPECIALIST_SUPERVISORS.slice() : SEED.supervisors.slice()).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
-  if(state.nitaq && state.nitaq!==SPECIALIST_NITAQ) sups = sups.filter(s=>s.nitaq===state.nitaq);
+  const isDomainMode = SPECIALIST_DOMAINS.includes(state.nitaq);
+  const nitaqOptions = '<option value="">اختر النطاق أو المجال…</option>'+
+    '<optgroup label="النطاق (المشرفون)">'+NITAQS.map(n=>'<option value="'+n+'" '+(state.nitaq===n?'selected':'')+'>النطاق '+n+'</option>').join('')+'</optgroup>'+
+    '<optgroup label="المجال (الاختصاصيون)">'+SPECIALIST_DOMAINS.map(d=>'<option value="'+esc(d)+'" '+(state.nitaq===d?'selected':'')+'>'+esc(d)+'</option>').join('')+'</optgroup>';
+  let sups = (isDomainMode ? SPECIALIST_SUPERVISORS.filter(s=>s.domain===state.nitaq) : SEED.supervisors.slice()).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
+  if(state.nitaq && !isDomainMode) sups = sups.filter(s=>s.nitaq===state.nitaq);
   const supOptions = state.nitaq
     ? '<option value="">اختر اسمك…</option>'+sups.map(s=>'<option value="'+s.id+'" '+(state.supervisor===s.id?'selected':'')+'>'+esc(s.name)+'</option>').join('')
-    : '<option value="">اختر النطاق أولاً…</option>';
+    : '<option value="">اختر النطاق أو المجال أولاً…</option>';
   const monthOptions = '<option value="">اختر الشهر…</option>'+ACADEMIC_MONTHS.map(ym=>'<option value="'+ym+'" '+(state.month===ym?'selected':'')+'>'+monthLabel(ym)+'</option>').join('');
 
   let schoolsStep = '<div class="help-text">اختر اسمك أولاً لعرض مدارسك.</div>';
@@ -233,7 +236,7 @@ function renderForm(){
     '<div class="notice">'+icon(ICON_WARN,16)+'<div>هذا النموذج عام ولا يتطلّب أي تسجيل دخول. أضف كل أيام الزيارة خلال الشهر (يوماً بيوم)، ثم اضغط "إرسال الخطة" لإرسال الشهر كاملاً دفعة واحدة.</div></div>'+
     '<div class="panel">'+
       '<div class="step"><div class="step-num">1</div><div style="flex:1; display:grid; grid-template-columns:1fr; gap:12px;">'+
-        '<div class="field"><label>النطاق</label><select class="input" id="nitaqSelect">'+nitaqOptions+'</select></div>'+
+        '<div class="field"><label>النطاق / المجال</label><select class="input" id="nitaqSelect">'+nitaqOptions+'</select></div>'+
         '<div class="field"><label>اسمك (المشرف/ة)</label><select class="input" id="supSelect" '+(state.nitaq?'':'disabled')+'>'+supOptions+'</select></div>'+
         '<div class="field"><label>الشهر</label><select class="input" id="monthSelect">'+monthOptions+'</select></div>'+
       '</div></div>'+
