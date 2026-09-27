@@ -140,7 +140,8 @@ const HOLIDAYS = [
 function holidayFor(dateStr){ return dateStr ? HOLIDAYS.find(h=> dateStr>=h.start && dateStr<=h.end) : null; }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function fmtDate(d){ if(!d) return '—'; try{ const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('ar-SA-u-nu-latn',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return d; } }
+function fmtDate(d){ if(!d) return '—'; try{ const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return d; } }
+function fmtDateHijri(d){ if(!d) return ''; try{ const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('ar-SA-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
 function icon(paths, size){ return '<svg viewBox="0 0 24 24" width="'+(size||16)+'" height="'+(size||16)+'" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>'; }
 const ICON_WARN = '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 2.4 18a1.5 1.5 0 0 0 1.3 2.2h16.6a1.5 1.5 0 0 0 1.3-2.2L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z"/>';
 const ICON_CHECK = '<path d="m5 13 4 4L19 7"/>';
@@ -152,9 +153,9 @@ const ICON_PLUS = '<path d="M12 5v14M5 12h14"/>';
 const WEEKDAY_MAP = {0:'الأحد',1:'الاثنين',2:'الثلاثاء',3:'الأربعاء',4:'الخميس',5:'الجمعة',6:'السبت'};
 function weekdayArabic(dateStr){ return WEEKDAY_MAP[new Date(dateStr+'T00:00:00').getDay()] || ''; }
 const ACADEMIC_MONTHS = (function(){ const arr=[]; let y=2026,m=8; for(let i=0;i<12;i++){ arr.push(y+'-'+String(m).padStart(2,'0')); m++; if(m>12){m=1;y++;} } return arr; })();
-function monthLabel(ym){ if(!ym) return ''; const [y,m]=ym.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('ar-SA-u-nu-latn',{month:'long', year:'numeric'}); }
+function monthLabel(ym){ if(!ym) return ''; const [y,m]=ym.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{month:'long', year:'numeric'}); }
 
-let state = { supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'' };
+let state = { nitaq:'', supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'' };
 
 function schoolsFor(supId){ return SEED.schools.filter(s=>s.supervisorId===supId); }
 function supById(id){ return SEED.supervisors.find(s=>s.id===id); }
@@ -166,8 +167,12 @@ function render(){
 }
 
 function renderForm(){
-  const sups = SEED.supervisors.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
-  const supOptions = '<option value="">اختر اسمك…</option>'+sups.map(s=>'<option value="'+s.id+'" '+(state.supervisor===s.id?'selected':'')+'>'+esc(s.name)+'</option>').join('');
+  const nitaqOptions = '<option value="">اختر النطاق…</option>'+NITAQS.map(n=>'<option value="'+n+'" '+(state.nitaq===n?'selected':'')+'>النطاق '+n+'</option>').join('');
+  let sups = SEED.supervisors.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
+  if(state.nitaq) sups = sups.filter(s=>s.nitaq===state.nitaq);
+  const supOptions = state.nitaq
+    ? '<option value="">اختر اسمك…</option>'+sups.map(s=>'<option value="'+s.id+'" '+(state.supervisor===s.id?'selected':'')+'>'+esc(s.name)+'</option>').join('')
+    : '<option value="">اختر النطاق أولاً…</option>';
   const monthOptions = '<option value="">اختر الشهر…</option>'+ACADEMIC_MONTHS.map(ym=>'<option value="'+ym+'" '+(state.month===ym?'selected':'')+'>'+monthLabel(ym)+'</option>').join('');
 
   let schoolsStep = '<div class="help-text">اختر اسمك أولاً لعرض مدارسك.</div>';
@@ -179,7 +184,7 @@ function renderForm(){
     ).join('')+'</div>' : '<div class="help-text">لا توجد مدارس مرتبطة باسمك حالياً.</div>';
   }
 
-  const disp = state.curDate ? fmtDate(state.curDate)+' ('+weekdayArabic(state.curDate)+')' : 'اختر تاريخاً…';
+  const disp = state.curDate ? fmtDate(state.curDate)+' ('+weekdayArabic(state.curDate)+') — '+fmtDateHijri(state.curDate)+' هـ' : 'اختر تاريخاً…';
   const canAddRow = state.supervisor && state.curDate && state.curSchool;
   const canSend = state.supervisor && state.month && state.visits.length>0 && !state.sending;
 
@@ -188,7 +193,7 @@ function renderForm(){
     rows.map(function(v,i){
       const sc = SEED.schools.find(s=>s.id===v.school);
       return '<div style="display:flex; align-items:center; gap:8px; padding:9px 12px; '+(i? 'border-top:1px solid var(--line);':'')+'">'+
-        '<div style="flex:1; font-size:13px;"><b>'+fmtDate(v.date)+'</b> ('+weekdayArabic(v.date)+') — '+esc(sc?sc.name:'')+'</div>'+
+        '<div style="flex:1; font-size:13px;"><b>'+fmtDate(v.date)+'</b> ('+weekdayArabic(v.date)+') <span style="color:var(--ink-faint); font-size:11.5px;">'+fmtDateHijri(v.date)+' هـ</span> — '+esc(sc?sc.name:'')+'</div>'+
         '<button type="button" class="btn btn-ghost" data-act="remove-visit" data-idx="'+i+'" style="padding:5px 9px; width:auto; border:none;" title="حذف">✕</button>'+
       '</div>';
     }).join('')+
@@ -197,8 +202,9 @@ function renderForm(){
   return ''+
     '<div class="notice">'+icon(ICON_WARN,16)+'<div>هذا النموذج عام ولا يتطلّب أي تسجيل دخول. أضف كل أيام الزيارة خلال الشهر (يوماً بيوم)، ثم اضغط "إرسال الخطة" لإرسال الشهر كاملاً دفعة واحدة.</div></div>'+
     '<div class="panel">'+
-      '<div class="step"><div class="step-num">1</div><div style="flex:1; display:grid; grid-template-columns:1fr 1fr; gap:12px;">'+
-        '<div class="field"><label>اسمك (المشرف/ة)</label><select class="input" id="supSelect">'+supOptions+'</select></div>'+
+      '<div class="step"><div class="step-num">1</div><div style="flex:1; display:grid; grid-template-columns:1fr; gap:12px;">'+
+        '<div class="field"><label>النطاق</label><select class="input" id="nitaqSelect">'+nitaqOptions+'</select></div>'+
+        '<div class="field"><label>اسمك (المشرف/ة)</label><select class="input" id="supSelect" '+(state.nitaq?'':'disabled')+'>'+supOptions+'</select></div>'+
         '<div class="field"><label>الشهر</label><select class="input" id="monthSelect">'+monthOptions+'</select></div>'+
       '</div></div>'+
       '<div style="height:1px; background:var(--line); margin:16px 0;"></div>'+
@@ -276,7 +282,7 @@ function calendarGridHtml(viewMonth, selected){
   const startWeekday = first.getDay();
   const daysInMonth = new Date(y, m, 0).getDate();
   const weekdayLabels = ['أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
-  const monthTitle = first.toLocaleDateString('ar-SA-u-nu-latn',{month:'long', year:'numeric'});
+  const monthTitle = first.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{month:'long', year:'numeric'});
   const cells = [];
   for(let i=0;i<startWeekday;i++) cells.push('<div class="cal-cell empty"></div>');
   const typesUsed = new Set();
@@ -349,10 +355,11 @@ document.addEventListener('click', function(e){
     sendAuto();
     return;
   }
-  if(e.target.id==='newPlanBtn'){ state = { supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'' }; render(); return; }
+  if(e.target.id==='newPlanBtn'){ state = { nitaq:'', supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'' }; render(); return; }
 });
 
 document.addEventListener('change', function(e){
+  if(e.target.id==='nitaqSelect'){ state.nitaq = e.target.value; state.supervisor=''; state.curSchool=''; render(); return; }
   if(e.target.id==='supSelect'){ state.supervisor = e.target.value; state.curSchool=''; render(); return; }
   if(e.target.id==='monthSelect'){ state.month = e.target.value; render(); return; }
 });
