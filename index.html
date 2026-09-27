@@ -122,16 +122,16 @@ const NITAQS = ['الأول','الثاني','الثالث'];
 const SPECIALIST_NITAQ = '__spec__';
 const SPECIALIST_DOMAINS = ['اخصائي نواتج التعلم','اخصائي النشاط الطلابي','اخصائي التوجيه الطلابي'];
 const SPECIALIST_SUPERVISORS = [
-  {id:'sp_spec1', name:'يحي عامر يحي حمدي', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec2', name:'هاني عبدالله زيد الدريهم', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec3', name:'د.محمد ناصر محمد الشدي', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec4', name:'غادة عبدالله علي الجمعة', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec5', name:'ابتسام محمد عبد العزيز المساعد', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec6', name:'حصة خليف عليان المطيري', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec7', name:'عبد العزيز بن فهد بن محمد الشاهين', domain:'اخصائي النشاط الطلابي', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec8', name:'امل محمد فهد الرويبعه', domain:'اخصائي النشاط الطلابي', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec9', name:'محمد مجدل محمد القحطاني', domain:'اخصائي التوجيه الطلابي', nitaq:SPECIALIST_NITAQ},
-  {id:'sp_spec10', name:'اشواق محمد بن سعيد القحطاني', domain:'اخصائي التوجيه الطلابي', nitaq:SPECIALIST_NITAQ},
+  {id:'sp_spec1', name:'يحي عامر يحي حمدي', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ, gender:'بنين'},
+  {id:'sp_spec2', name:'هاني عبدالله زيد الدريهم', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ, gender:'بنين'},
+  {id:'sp_spec3', name:'د.محمد ناصر محمد الشدي', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ, gender:'بنين'},
+  {id:'sp_spec4', name:'غادة عبدالله علي الجمعة', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ, gender:'بنات'},
+  {id:'sp_spec5', name:'ابتسام محمد عبد العزيز المساعد', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ, gender:'بنات'},
+  {id:'sp_spec6', name:'حصة خليف عليان المطيري', domain:'اخصائي نواتج التعلم', nitaq:SPECIALIST_NITAQ, gender:'بنات'},
+  {id:'sp_spec7', name:'عبد العزيز بن فهد بن محمد الشاهين', domain:'اخصائي النشاط الطلابي', nitaq:SPECIALIST_NITAQ, gender:'بنين'},
+  {id:'sp_spec8', name:'امل محمد فهد الرويبعه', domain:'اخصائي النشاط الطلابي', nitaq:SPECIALIST_NITAQ, gender:'بنات'},
+  {id:'sp_spec9', name:'محمد مجدل محمد القحطاني', domain:'اخصائي التوجيه الطلابي', nitaq:SPECIALIST_NITAQ, gender:'بنين'},
+  {id:'sp_spec10', name:'اشواق محمد بن سعيد القحطاني', domain:'اخصائي التوجيه الطلابي', nitaq:SPECIALIST_NITAQ, gender:'بنات'},
 ];
 function isSpecialist(supId){ return SPECIALIST_SUPERVISORS.some(s=>s.id===supId); }
 
@@ -170,13 +170,12 @@ function weekdayArabic(dateStr){ return WEEKDAY_MAP[new Date(dateStr+'T00:00:00'
 const ACADEMIC_MONTHS = (function(){ const arr=[]; let y=2026,m=8; for(let i=0;i<12;i++){ arr.push(y+'-'+String(m).padStart(2,'0')); m++; if(m>12){m=1;y++;} } return arr; })();
 function monthLabel(ym){ if(!ym) return ''; const [y,m]=ym.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{month:'long', year:'numeric'}); }
 
-let state = { nitaq:'', supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'', schoolGenderFilter:'' };
+let state = { nitaq:'', supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'' };
 
 function schoolsFor(supId){
   if(isSpecialist(supId)){
-    let list = SEED.schools.slice();
-    if(state.schoolGenderFilter) list = list.filter(s=>s.gender===state.schoolGenderFilter);
-    return list;
+    const sp = SPECIALIST_SUPERVISORS.find(s=>s.id===supId);
+    return SEED.schools.filter(s=>s.gender===(sp&&sp.gender));
   }
   return SEED.schools.filter(s=>s.supervisorId===supId);
 }
@@ -201,16 +200,8 @@ function renderForm(){
   const monthOptions = '<option value="">اختر الشهر…</option>'+ACADEMIC_MONTHS.map(ym=>'<option value="'+ym+'" '+(state.month===ym?'selected':'')+'>'+monthLabel(ym)+'</option>').join('');
 
   let schoolsStep = '<div class="help-text">اختر اسمك أولاً لعرض مدارسك.</div>';
-  let genderFilterHtml = '';
   const sp = state.supervisor ? supById(state.supervisor) : null;
   if(sp){
-    if(isSpecialist(sp.id)){
-      genderFilterHtml = '<div class="field"><label>نوع المدرسة</label><select class="input" id="schoolGenderSelect">'+
-        '<option value="">الكل (بنين وبنات)</option>'+
-        '<option value="بنين" '+(state.schoolGenderFilter==='بنين'?'selected':'')+'>بنين</option>'+
-        '<option value="بنات" '+(state.schoolGenderFilter==='بنات'?'selected':'')+'>بنات</option>'+
-      '</select></div>';
-    }
     const schools = schoolsFor(sp.id).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
     schoolsStep = schools.length ? '<div class="radio-schools">'+schools.map(s=>
       '<label class="school-opt '+(state.curSchool===s.id?'sel':'')+'"><input type="radio" name="schoolPick" value="'+s.id+'" data-act="pick-school" '+(state.curSchool===s.id?'checked':'')+'><span>'+esc(s.name)+'<div class="help-text">'+esc(s.stage||'')+'</div></span></label>'
@@ -250,7 +241,6 @@ function renderForm(){
               '<div class="cal-pop" id="calPop" hidden></div>'+
             '</div>'+
           '</div>'+
-          genderFilterHtml+
           '<div class="field"><label>المدرسة المزمع زيارتها</label>'+schoolsStep+'</div>'+
         '</div>'+
         '<button type="button" class="btn btn-primary" id="addVisitBtn" style="margin-top:12px;" '+(canAddRow?'':'disabled')+'>'+icon(ICON_PLUS,16)+'إضافة هذا اليوم للخطة</button>'+
@@ -389,14 +379,13 @@ document.addEventListener('click', function(e){
     sendAuto();
     return;
   }
-  if(e.target.id==='newPlanBtn'){ state = { nitaq:'', supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'', schoolGenderFilter:'' }; render(); return; }
+  if(e.target.id==='newPlanBtn'){ state = { nitaq:'', supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'' }; render(); return; }
 });
 
 document.addEventListener('change', function(e){
-  if(e.target.id==='nitaqSelect'){ state.nitaq = e.target.value; state.supervisor=''; state.curSchool=''; state.schoolGenderFilter=''; render(); return; }
-  if(e.target.id==='supSelect'){ state.supervisor = e.target.value; state.curSchool=''; state.schoolGenderFilter=''; render(); return; }
+  if(e.target.id==='nitaqSelect'){ state.nitaq = e.target.value; state.supervisor=''; state.curSchool=''; render(); return; }
+  if(e.target.id==='supSelect'){ state.supervisor = e.target.value; state.curSchool=''; render(); return; }
   if(e.target.id==='monthSelect'){ state.month = e.target.value; render(); return; }
-  if(e.target.id==='schoolGenderSelect'){ state.schoolGenderFilter = e.target.value; state.curSchool=''; render(); return; }
 });
 
 render();
