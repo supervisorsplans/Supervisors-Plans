@@ -141,14 +141,19 @@ const TYPE_META = {
   semester:{label:'إجازة فصلية', color:'#B4771F', bg:'#FBEDD8'},
   summer:{label:'إجازة صيفية', color:'#1D6FA5', bg:'#E1EEF7'},
   info:{label:'حدث دراسي', color:'#12344D', bg:'#E7EEF3'},
+  additional:{label:'إجازة إضافية', color:'#B23A48', bg:'#FBE4E7'},
 };
 const HOLIDAYS = [
   {start:'2026-08-23', end:'2026-08-23', label:'بداية العام الدراسي 1448هـ', type:'info'},
   {start:'2026-09-23', end:'2026-09-26', label:'إجازة اليوم الوطني السعودي', type:'national'},
+  {start:'2026-10-25', end:'2026-10-25', label:'إجازة إضافية (1448/05/14هـ)', type:'additional'},
   {start:'2026-11-20', end:'2026-11-28', label:'إجازة الخريف', type:'semester'},
+  {start:'2026-11-29', end:'2026-11-29', label:'إجازة إضافية (1448/06/19هـ)', type:'additional'},
+  {start:'2027-01-07', end:'2027-01-07', label:'إجازة إضافية (1448/07/29هـ)', type:'additional'},
   {start:'2027-01-08', end:'2027-01-21', label:'إجازة منتصف العام الدراسي', type:'semester'},
   {start:'2027-02-19', end:'2027-02-22', label:'إجازة يوم التأسيس', type:'national'},
   {start:'2027-02-27', end:'2027-03-13', label:'إجازة عيد الفطر (تقديرية وفق رؤية الهلال)', type:'religious'},
+  {start:'2027-04-11', end:'2027-04-11', label:'إجازة إضافية (1448/11/04هـ)', type:'additional'},
   {start:'2027-05-07', end:'2027-05-22', label:'إجازة عيد الأضحى', type:'religious'},
   {start:'2027-06-24', end:'2027-08-20', label:'الإجازة الصيفية', type:'summer'},
 ];
@@ -314,10 +319,12 @@ function calendarGridHtml(viewMonth, selected){
     const dateStr = y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const h = holidayFor(dateStr);
     let style='', cls='cal-cell';
-    if(h){ cls+=' cal-holiday'; style='background:'+TYPE_META[h.type].bg+'; color:'+TYPE_META[h.type].color+'; font-weight:700;'; typesUsed.add(h.type); }
+    if(h){ cls+=' cal-holiday'; style='background:'+TYPE_META[h.type].bg+'; color:'+TYPE_META[h.type].color+'; font-weight:700; cursor:not-allowed; opacity:.85;'; typesUsed.add(h.type); }
     if(selected===dateStr) cls+=' cal-sel';
     if(dateStr===todayISO()) cls+=' cal-today';
-    cells.push('<button type="button" class="'+cls+'" style="'+style+'" data-act="cal-pick" data-date="'+dateStr+'" title="'+(h?esc(h.label):'')+'">'+d+'</button>');
+    cells.push(h
+      ? '<button type="button" class="'+cls+'" style="'+style+'" disabled title="'+esc(h.label)+' — إجازة، لا يمكن اختيار هذا اليوم">'+d+'</button>'
+      : '<button type="button" class="'+cls+'" style="'+style+'" data-act="cal-pick" data-date="'+dateStr+'">'+d+'</button>');
   }
   const legend = [...typesUsed].map(t=>'<div class="cal-legend-item"><span class="cal-legend-dot" style="background:'+TYPE_META[t].color+';"></span>'+TYPE_META[t].label+'</div>').join('');
   return '<div class="cal-pop-head"><button type="button" class="cal-nav-btn" data-act="cal-nav" data-dir="1">›</button><div class="cal-title">'+monthTitle+'</div><button type="button" class="cal-nav-btn" data-act="cal-nav" data-dir="-1">‹</button></div>'+
