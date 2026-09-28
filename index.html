@@ -169,6 +169,7 @@ const ICON_WA = '<path d="M4 20l1.3-4A8 8 0 1 1 9 18.6L4 20Z"/><path d="M8.5 9.5
 const ICON_MAIL = '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>';
 const ICON_CAL = '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9.5h16M8 3v4M16 3v4"/>';
 const ICON_PLUS = '<path d="M12 5v14M5 12h14"/>';
+const ICON_DOWNLOAD = '<path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/>';
 
 const WEEKDAY_MAP = {0:'الأحد',1:'الاثنين',2:'الثلاثاء',3:'الأربعاء',4:'الخميس',5:'الجمعة',6:'السبت'};
 function weekdayArabic(dateStr){ return WEEKDAY_MAP[new Date(dateStr+'T00:00:00').getDay()] || ''; }
@@ -266,8 +267,33 @@ function renderDone(){
   return '<div class="panel done-box">'+icon(ICON_CHECK,46)+
     '<div style="font-weight:800; font-size:16px; margin-bottom:6px;">تم إرسال خطة الشهر بنجاح</div>'+
     '<div class="help-text" style="margin-bottom:18px;">وصلت خطتك، وسيتم إدراجها في اللوحة قريباً.</div>'+
-    '<button class="btn" id="newPlanBtn" style="width:auto; padding:10px 20px;">تسجيل خطة شهر آخر</button>'+
+    '<div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">'+
+      '<button class="btn btn-primary" id="downloadPlanPdfBtn" style="width:auto; padding:10px 20px;">'+icon(ICON_DOWNLOAD,16)+'تحميل الخطة PDF</button>'+
+      '<button class="btn" id="newPlanBtn" style="width:auto; padding:10px 20px;">تسجيل خطة شهر آخر</button>'+
+    '</div>'+
   '</div>';
+}
+
+function printMyPlan(){
+  const sp = supById(state.supervisor);
+  const rows = state.visits.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const trRows = rows.map(function(v){
+    const sc = SEED.schools.find(s=>s.id===v.school);
+    return '<tr><td>'+esc(fmtDate(v.date))+'</td><td>'+esc(weekdayArabic(v.date))+'</td><td>'+esc(sc?sc.name:'')+'</td></tr>';
+  }).join('');
+  const subtitle = sp ? (isSpecialist(sp.id) ? (sp.domain||'اختصاصي') : ('النطاق '+sp.nitaq)) : '';
+  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'+
+    '<title>خطة زيارات '+esc(sp?sp.name:'')+'</title>'+
+    '<style>body{font-family:Tahoma,Arial,sans-serif; padding:32px; color:#12202b;} h1{font-size:20px;margin-bottom:4px;} h2{font-size:14px;color:#555;font-weight:normal;margin-top:0;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #ccc;padding:8px 10px;text-align:right;font-size:13px;} th{background:#f2f2f2;}</style>'+
+    '</head><body>'+
+    '<h1>خطة زيارات — '+esc(sp?sp.name:'')+'</h1>'+
+    '<h2>'+esc(subtitle)+' — '+esc(monthLabel(state.month))+' — عدد أيام الزيارة: '+rows.length+'</h2>'+
+    '<table><thead><tr><th>التاريخ</th><th>اليوم</th><th>المدرسة</th></tr></thead><tbody>'+trRows+'</tbody></table>'+
+    '<script>window.onload=function(){ setTimeout(function(){ window.print(); }, 300); };<\/script>'+
+    '</body></html>';
+  const w = window.open('', '_blank');
+  if(!w){ alert('يرجى السماح بالنوافذ المنبثقة لعرض الخطة للطباعة/التحميل كـ PDF'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 function buildMessage(){
@@ -386,6 +412,7 @@ document.addEventListener('click', function(e){
     sendAuto();
     return;
   }
+  if(e.target.closest && e.target.closest('#downloadPlanPdfBtn')){ printMyPlan(); return; }
   if(e.target.id==='newPlanBtn'){ state = { nitaq:'', supervisor:'', month:'', visits:[], curDate:'', curSchool:'', sent:false, sending:false, sendError:'' }; render(); return; }
 });
 
