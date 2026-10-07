@@ -43,7 +43,6 @@ th{background:var(--soft);font-size:13px}
   <div id="note" class="notice" hidden>تنبيه: يُرجى اختيار خمس مدارس مختلفة، ولا تتكرر المدرسة في أكثر من رغبة.</div>
   <div id="status" role="status" hidden></div>
   <button class="go" id="send" hidden disabled>إرسال الرغبات</button>
-  <a class="go" id="wa" hidden target="_blank" rel="noopener" style="text-align:center;text-decoration:none;display:block">إرسال الرغبات عبر الواتساب</a>
  </section>
  <section id="done" class="card sum" hidden>
   <div class="msg ok">تم إرسال رغباتك بنجاح.</div>
@@ -56,7 +55,6 @@ th{background:var(--soft);font-size:13px}
 const NAMES=["بدر محمد حسن بن جدوع", "خالد محمد سعد الداوود", "عبدالرحمن بن عبدالله بن عبدالرحمن بن جطيل", "عبدالعزيز عبدالله محمد بن غملاس", "محمد بن عبدالله بن شايع المطرفي", "عبيد سليمان عبدالله الرشيدي", "محمد بن حسن بن احمد الغريبي", "عبدالله حسن شارع الرمثي", "مسلم جليميد صويان الدوسري"];
 const SCHOOLS=["ابتدائية أبي عبيدة عامر بن الجراح", "ابتدائية أحمد بن حنبل", "ابتدائية أنس بن مالك", "ابتدائية ابن القيم", "ابتدائية الأندلس", "ابتدائية التوضحية", "ابتدائية الحزم", "ابتدائية الراشدية", "ابتدائية السلمية", "ابتدائية السهباء", "ابتدائية الشديدة", "ابتدائية القدس", "ابتدائية الملك فيصل", "ابتدائية الناصفة", "ابتدائية الواحة", "ابتدائية اليمامة", "ابتدائية سعيد بن زيد", "ابتدائية طارق بن زياد", "ابتدائية عبادة بن الصامت", "ابتدائية عبدالله بن رواحة", "متوسطة ابن العميد", "متوسطة ابن خلدون", "متوسطة ابن رشد", "متوسطة الإمام أبي حنيفة", "متوسطة الإمام القرطبي", "متوسطة الإمام مالك", "متوسطة الخوارزمي", "متوسطة الرفايع", "متوسطة السيح", "متوسطة الشيخ محمد بن إبراهيم", "متوسطة الضبيعة", "متوسطة المدينة المنورة", "متوسطة الملك سعود", "متوسطة الهياثم", "متوسطة الواحة", "متوسطة اليمامة", "متوسطة حنين", "متوسطة زميقة", "متوسطة عبدالرحمن الغافقي", "متوسطة معاوية بن أبي سفيان"];
 
-const SEND_WHATSAPP_NUMBER='966566323332';
 const SEND_EMAIL='fdaghriri8288@moe.gov.sa';
 const EMAILJS_PUBLIC_KEY='qvCKHpMCsPcX0bq4F',EMAILJS_SERVICE_ID='service_z3joklk',EMAILJS_TEMPLATE_ID='template_mei5f4q';
 if(window.emailjs) emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});
@@ -91,7 +89,7 @@ function show(el,on){el.hidden=!on}
 function say(t,k){const s=$('status');s.className='msg '+k;s.textContent=t;s.hidden=false}
 who.addEventListener('change',()=>{
   const on=!!who.value;
-  ranks.style.display=on?'flex':'none';ranks.hidden=!on;show($('note'),on);show($('send'),on);show($('done'),false);show($('status'),false);show($('wa'),false);
+  ranks.style.display=on?'flex':'none';ranks.hidden=!on;show($('note'),on);show($('send'),on);show($('done'),false);show($('status'),false);
   if(on)buildRanks();
 });
 function msgText(name,picks){
@@ -101,7 +99,7 @@ $('send').addEventListener('click',()=>{
   const picks=vals(),name=who.value;
   if(new Set(picks).size!==5){say('لا يمكن تكرار مدرسة في أكثر من رغبة.','err');return}
   if(!window.emailjs){say('تعذّر الاتصال بخدمة الإرسال، تحقّق من الاتصال بالإنترنت.','err');return}
-  show($('wa'),false);const b=$('send');b.disabled=true;b.textContent='جارِ الإرسال…';
+  const b=$('send');b.disabled=true;b.textContent='جارِ الإرسال…';
   Promise.race([emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{name:name,title:'رغبات دعم التميز — '+name,message:msgText(name,picks),email:SEND_EMAIL,time:new Date().toLocaleString('ar-SA')}),new Promise((_,rj)=>setTimeout(()=>rj({text:'انتهت مهلة الاتصال'}),20000))]).then(()=>{
     lastPicks=picks;lastName=name;
     show($('formView'),false);
@@ -111,9 +109,9 @@ $('send').addEventListener('click',()=>{
     show(dn,true);
   },err=>{
     b.textContent='إرسال الرغبات';b.disabled=false;
-    say('تعذّر الإرسال تلقائياً'+(err&&(err.text||err.message)?' ('+(err.text||err.message)+')':'')+'. أعد المحاولة، أو أرسل رغباتك عبر الواتساب بالزر أدناه.','err');
-    $('wa').href='https://wa.me/'+SEND_WHATSAPP_NUMBER+'?text='+encodeURIComponent(msgText(name,picks));
-    show($('wa'),true);
+    const st=err&&err.status,det=err&&(err.text||err.message)||'';
+    const why=st===429?'تجاوزت خدمة البريد حدّها المسموح، حاول لاحقاً.':st===403||st===412?'خدمة البريد رفضت الطلب (إعدادات الحساب).':'';
+    say('تعذّر إرسال البريد. '+why+' ['+(st||'')+' '+det+'] أعد المحاولة.','err');
   });
 });
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
