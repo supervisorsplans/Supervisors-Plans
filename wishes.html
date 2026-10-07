@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>رغبات دعم التميز</title>
+<style>
+/* Layout: single column form on a ledger-like sheet; green ministry-adjacent palette, Tajawal + Noto Naskh */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Noto+Naskh+Arabic:wght@500;700&display=swap');
+:root{--bg:#f3f6f4;--card:#ffffff;--fg:#17302a;--mut:#5d7169;--line:#d5e0db;--accent:#0f6b56;--accent-fg:#ffffff;--soft:#e3f1ec;--warn-bg:#fff4dc;--warn-fg:#7a5200;--bad:#b3261e;--ok:#1b7a4a;--sheet:#fbfdfc}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a17;--card:#16241f;--fg:#e4efeb;--mut:#98ada5;--line:#2a3d36;--accent:#4cc3a3;--accent-fg:#0b1f19;--soft:#1d3a31;--warn-bg:#3a2e10;--warn-fg:#f2cf7a;--bad:#ff8a80;--ok:#6fd49b;--sheet:#12201b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1a17;--card:#16241f;--fg:#e4efeb;--mut:#98ada5;--line:#2a3d36;--accent:#4cc3a3;--accent-fg:#0b1f19;--soft:#1d3a31;--warn-bg:#3a2e10;--warn-fg:#f2cf7a;--bad:#ff8a80;--ok:#6fd49b;--sheet:#12201b;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:'Tajawal',system-ui,sans-serif;font-size:15px;line-height:1.7;padding-inline:16px;padding-block:24px}
+.wrap{max-width:680px;margin-inline:auto;display:flex;flex-direction:column;gap:16px}
+h1{font-family:'Noto Naskh Arabic','Tajawal',serif;font-size:28px;margin:0;line-height:1.4;text-wrap:balance}
+.sub{color:var(--mut);margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+label{font-weight:700;display:block;margin-bottom:6px}
+select{width:100%;font:inherit;color:var(--fg);background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:11px 12px;min-height:46px}
+select:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.rank{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.rank .n{flex:none;width:38px;height:38px;border-radius:50%;background:var(--soft);color:var(--accent);display:grid;place-items:center;font-weight:700;margin-top:30px}
+.rank .f{flex:1;min-width:0}
+.notice{background:var(--warn-bg);color:var(--warn-fg);border-radius:10px;padding:12px 14px;font-weight:500}
+button.go{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-fg);border:0;border-radius:10px;padding:13px 18px;min-height:48px;cursor:pointer}
+button.go[disabled]{opacity:.5;cursor:not-allowed}
+.msg{padding:12px 14px;border-radius:10px;font-weight:500}
+.msg.ok{background:var(--soft);color:var(--ok)}.msg.err{background:var(--warn-bg);color:var(--bad)}
+.sum ol{margin:0;padding-inline-start:22px}
+.tabs{display:flex;gap:8px}
+.tabs button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 14px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:right;vertical-align:top}
+th{background:var(--soft);font-size:13px}
+.dupe{color:var(--bad);font-weight:700}
+</style>
+</head><body>
+<div class="wrap" dir="rtl">
+ <header><h1>رغبات مشرفي دعم التميز</h1>
+ <p class="sub">اختر اسمك ثم رتّب خمس رغبات للمدارس من الأولى إلى الخامسة.</p></header>
+ <section id="formView" class="card">
+  <div><label for="who">اسم المشرف</label><select id="who"><option value="">اختر اسمك…</option></select></div>
+  <div id="ranks" hidden style="display:none;flex-direction:column;gap:14px"></div>
+  <div id="note" class="notice" hidden>تنبيه: يُرجى اختيار خمس مدارس مختلفة، ولا تتكرر المدرسة في أكثر من رغبة.</div>
+  <div id="status" role="status" hidden></div>
+  <button class="go" id="send" hidden disabled>إرسال الرغبات</button>
+ </section>
+ <section id="done" class="card sum" hidden>
+  <div class="msg ok">تم إرسال رغباتك بنجاح.</div>
+  <b>ملخص رغباتك</b><ol></ol>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="go" id="pdf">تحميل نسخة PDF</button><button class="go" id="again" style="background:var(--soft);color:var(--accent)">تعديل / إرسال مرة أخرى</button></div>
+ </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+const NAMES=["بدر محمد حسن بن جدوع", "خالد محمد سعد الداوود", "عبدالرحمن بن عبدالله بن عبدالرحمن بن جطيل", "عبدالعزيز عبدالله محمد بن غملاس", "محمد بن عبدالله بن شايع المطرفي", "عبيد سليمان عبدالله الرشيدي", "محمد بن حسن بن احمد الغريبي", "عبدالله حسن شارع الرمثي", "مسلم جليميد صويان الدوسري"];
+const SCHOOLS=["ابتدائية أبي عبيدة عامر بن الجراح", "ابتدائية أحمد بن حنبل", "ابتدائية أنس بن مالك", "ابتدائية ابن القيم", "ابتدائية الأندلس", "ابتدائية التوضحية", "ابتدائية الحزم", "ابتدائية الراشدية", "ابتدائية السلمية", "ابتدائية السهباء", "ابتدائية الشديدة", "ابتدائية القدس", "ابتدائية الملك فيصل", "ابتدائية الناصفة", "ابتدائية الواحة", "ابتدائية اليمامة", "ابتدائية سعيد بن زيد", "ابتدائية طارق بن زياد", "ابتدائية عبادة بن الصامت", "ابتدائية عبدالله بن رواحة", "متوسطة ابن العميد", "متوسطة ابن خلدون", "متوسطة ابن رشد", "متوسطة الإمام أبي حنيفة", "متوسطة الإمام القرطبي", "متوسطة الإمام مالك", "متوسطة الخوارزمي", "متوسطة الرفايع", "متوسطة السيح", "متوسطة الشيخ محمد بن إبراهيم", "متوسطة الضبيعة", "متوسطة المدينة المنورة", "متوسطة الملك سعود", "متوسطة الهياثم", "متوسطة الواحة", "متوسطة اليمامة", "متوسطة حنين", "متوسطة زميقة", "متوسطة عبدالرحمن الغافقي", "متوسطة معاوية بن أبي سفيان"];
+
+const SEND_EMAIL='fdaghriri8288@moe.gov.sa';
+const EMAILJS_PUBLIC_KEY='qvCKHpMCsPcX0bq4F',EMAILJS_SERVICE_ID='service_z3joklk',EMAILJS_TEMPLATE_ID='template_mei5f4q';
+if(window.emailjs) emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});
+const $=id=>document.getElementById(id);
+const ORD=['الأولى','الثانية','الثالثة','الرابعة','الخامسة'];
+const who=$('who');
+NAMES.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;who.appendChild(o)});
+const ranks=$('ranks');
+let lastPicks=null,lastName='';
+function buildRanks(){
+  ranks.innerHTML='';
+  ORD.forEach((o,i)=>{
+    const d=document.createElement('div');d.className='rank';
+    const n=document.createElement('div');n.className='n';n.textContent=i+1;
+    const f=document.createElement('div');f.className='f';
+    const l=document.createElement('label');l.htmlFor='r'+i;l.textContent='الرغبة '+o;
+    const s=document.createElement('select');s.id='r'+i;
+    s.innerHTML='<option value="">اختر المدرسة…</option>';
+    SCHOOLS.forEach(x=>{const op=document.createElement('option');op.value=x;op.textContent=x;s.appendChild(op)});
+    s.addEventListener('change',refresh);
+    f.appendChild(l);f.appendChild(s);d.appendChild(n);d.appendChild(f);ranks.appendChild(d);
+  });
+  refresh();
+}
+function vals(){return ORD.map((_,i)=>$('r'+i).value)}
+function refresh(){
+  const v=vals();
+  ORD.forEach((_,i)=>{[...$('r'+i).options].forEach(op=>{op.disabled=!!op.value&&v.some((x,j)=>j!==i&&x===op.value)})});
+  $('send').disabled=!(who.value&&v.every(Boolean));
+}
+function show(el,on){el.hidden=!on}
+function say(t,k){const s=$('status');s.className='msg '+k;s.textContent=t;s.hidden=false}
+who.addEventListener('change',()=>{
+  const on=!!who.value;
+  ranks.style.display=on?'flex':'none';ranks.hidden=!on;show($('note'),on);show($('send'),on);show($('done'),false);show($('status'),false);
+  if(on)buildRanks();
+});
+function msgText(name,picks){
+  return '📋 رغبات مشرفي دعم التميز (بنين)\nالمشرف: '+name+'\n—\n'+picks.map((p,i)=>'الرغبة '+ORD[i]+': '+p).join('\n')+'\n—\nمُرسلة عبر نموذج الرغبات';
+}
+$('send').addEventListener('click',()=>{
+  const picks=vals(),name=who.value;
+  if(new Set(picks).size!==5){say('لا يمكن تكرار مدرسة في أكثر من رغبة.','err');return}
+  if(!window.emailjs){say('تعذّر الاتصال بخدمة الإرسال، تحقّق من الاتصال بالإنترنت.','err');return}
+  const b=$('send');b.disabled=true;b.textContent='جارِ الإرسال…';
+  emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{name:name,title:'رغبات دعم التميز — '+name,message:msgText(name,picks),email:SEND_EMAIL,time:new Date().toLocaleString('ar-SA')}).then(()=>{
+    lastPicks=picks;lastName=name;
+    show($('formView'),false);
+    const dn=$('done');
+    dn.querySelector('ol').innerHTML='';
+    picks.forEach(p=>{const li=document.createElement('li');li.textContent=p;dn.querySelector('ol').appendChild(li)});
+    show(dn,true);
+  },err=>{
+    b.textContent='إرسال الرغبات';b.disabled=false;
+    say('تعذّر الإرسال'+(err&&err.text?' ('+err.text+')':'')+'، أعد المحاولة.','err');
+  });
+});
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+$('pdf').addEventListener('click',()=>{
+  if(!lastPicks)return;
+  const rows=lastPicks.map((p,i)=>'<tr><td>الرغبة '+ORD[i]+'</td><td>'+esc(p)+'</td></tr>').join('');
+  const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>رغبات '+esc(lastName)+'</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:32px;color:#12202b}h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#555;font-weight:normal;margin-top:0}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px 10px;text-align:right}th{background:#e3f1ec}</style></head><body><h1>رغبات دعم التميز — '+esc(lastName)+'</h1><h2>'+esc(new Date().toLocaleDateString('ar-SA'))+'</h2><table><thead><tr><th>الرغبة</th><th>المدرسة</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>';
+  const w=window.open('','_blank');
+  if(!w){alert('يرجى السماح بالنوافذ المنبثقة لعرض النسخة وحفظها PDF');return}
+  w.document.open();w.document.write(html);w.document.close();
+});
+$('again').addEventListener('click',()=>{who.value='';show($('done'),false);show($('formView'),true);ranks.style.display='none';show($('note'),false);show($('send'),false);show($('status'),false);$('send').textContent='إرسال الرغبات'});
+</script></body></html>
