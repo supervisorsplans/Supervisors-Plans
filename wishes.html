@@ -7,6 +7,7 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a17;--card:#16241f;--fg:#e4efeb;--mut:#98ada5;--line:#2a3d36;--accent:#4cc3a3;--accent-fg:#0b1f19;--soft:#1d3a31;--warn-bg:#3a2e10;--warn-fg:#f2cf7a;--bad:#ff8a80;--ok:#6fd49b;--sheet:#12201b;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f1a17;--card:#16241f;--fg:#e4efeb;--mut:#98ada5;--line:#2a3d36;--accent:#4cc3a3;--accent-fg:#0b1f19;--soft:#1d3a31;--warn-bg:#3a2e10;--warn-fg:#f2cf7a;--bad:#ff8a80;--ok:#6fd49b;--sheet:#12201b;color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font-family:'Tajawal',system-ui,sans-serif;font-size:15px;line-height:1.7;padding-inline:16px;padding-block:24px}
 .wrap{max-width:680px;margin-inline:auto;display:flex;flex-direction:column;gap:16px}
 h1{font-family:'Noto Naskh Arabic','Tajawal',serif;font-size:28px;margin:0;line-height:1.4;text-wrap:balance}
@@ -101,7 +102,7 @@ $('send').addEventListener('click',()=>{
   if(!window.emailjs){say('تعذّر الاتصال بخدمة الإرسال، تحقّق من الاتصال بالإنترنت.','err');return}
   const b=$('send');b.disabled=true;b.textContent='جارِ الإرسال…';
   Promise.race([emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{name:name,title:'رغبات دعم التميز — '+name,message:msgText(name,picks),email:SEND_EMAIL,time:new Date().toLocaleString('ar-SA')}),new Promise((_,rj)=>setTimeout(()=>rj({text:'انتهت مهلة الاتصال'}),20000))]).then(()=>{
-    lastPicks=picks;lastName=name;
+    lastPicks=picks;lastName=name;b.textContent='إرسال الرغبات';b.disabled=false;
     show($('formView'),false);
     const dn=$('done');
     dn.querySelector('ol').innerHTML='';
