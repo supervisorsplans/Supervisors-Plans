@@ -45,11 +45,12 @@ th{background:var(--soft);font-size:13px}
  </section>
  <section id="done" class="card sum" hidden>
   <div class="msg ok">تم إرسال رغباتك بنجاح.</div>
-  <b>ملخص رغباتك</b><ol></ol>
-  <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="go" id="pdf">تحميل نسخة PDF</button><button class="go" id="again" style="background:var(--soft);color:var(--accent)">تعديل / إرسال مرة أخرى</button></div>
+  <b>ملخص رغباتك</b><div id="stampline" class="sub"></div><ol></ol>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="go" id="pdf">تحميل نسخة PDF</button><button class="go" id="xlsxbtn" hidden>تحميل نسخة Excel</button><button class="go" id="again" style="background:var(--soft);color:var(--accent)">تعديل / إرسال مرة أخرى</button></div>
  </section>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
 const NAMES=["بدر محمد حسن بن جدوع", "خالد محمد سعد الداوود", "عبدالرحمن بن عبدالله بن عبدالرحمن بن جطيل", "عبدالعزيز عبدالله محمد بن غملاس", "محمد بن عبدالله بن شايع المطرفي", "عبيد سليمان عبدالله الرشيدي", "محمد بن حسن بن احمد الغريبي", "عبدالله حسن شارع الرمثي", "مسلم جليميد صويان الدوسري"];
 const SCHOOLS=["ابتدائية أبي عبيدة عامر بن الجراح", "ابتدائية أحمد بن حنبل", "ابتدائية أنس بن مالك", "ابتدائية ابن القيم", "ابتدائية الأندلس", "ابتدائية التوضحية", "ابتدائية الحزم", "ابتدائية الراشدية", "ابتدائية السلمية", "ابتدائية السهباء", "ابتدائية الشديدة", "ابتدائية القدس", "ابتدائية الملك فيصل", "ابتدائية الناصفة", "ابتدائية الواحة", "ابتدائية اليمامة", "ابتدائية سعيد بن زيد", "ابتدائية طارق بن زياد", "ابتدائية عبادة بن الصامت", "ابتدائية عبدالله بن رواحة", "متوسطة ابن العميد", "متوسطة ابن خلدون", "متوسطة ابن رشد", "متوسطة الإمام أبي حنيفة", "متوسطة الإمام القرطبي", "متوسطة الإمام مالك", "متوسطة الخوارزمي", "متوسطة الرفايع", "متوسطة السيح", "متوسطة الشيخ محمد بن إبراهيم", "متوسطة الضبيعة", "متوسطة المدينة المنورة", "متوسطة الملك سعود", "متوسطة الهياثم", "متوسطة الواحة", "متوسطة اليمامة", "متوسطة حنين", "متوسطة زميقة", "متوسطة عبدالرحمن الغافقي", "متوسطة معاوية بن أبي سفيان"];
@@ -91,36 +92,93 @@ who.addEventListener('change',()=>{
   ranks.style.display=on?'flex':'none';ranks.hidden=!on;show($('note'),on);show($('send'),on);show($('done'),false);show($('status'),false);
   if(on)buildRanks();
 });
-function msgText(name,picks){
-  return '📋 رغبات مشرفي دعم التميز (بنين)\nالمشرف: '+name+'\n—\n'+picks.map((p,i)=>'الرغبة '+ORD[i]+': '+p).join('\n')+'\n—\nمُرسلة عبر نموذج الرغبات';
+function stamp(){
+  const d=new Date(),tz={timeZone:'Asia/Riyadh'};
+  const day=d.toLocaleDateString('ar-SA',Object.assign({weekday:'long'},tz));
+  const g=d.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',Object.assign({year:'numeric',month:'long',day:'numeric'},tz));
+  const hj=d.toLocaleDateString('ar-SA-u-ca-islamic-umalqura-nu-latn',Object.assign({year:'numeric',month:'long',day:'numeric'},tz));
+  const t=d.toLocaleTimeString('ar-SA-u-nu-latn',Object.assign({hour:'2-digit',minute:'2-digit',hour12:true},tz));
+  return {day,g,hj,t};
 }
-$('send').addEventListener('click',()=>{
+function msgText(name,picks,st){
+  st=st||stamp();
+  return '📋 رغبات مشرفي دعم التميز (بنين)\nالمشرف: '+name+'\nتاريخ التسجيل: '+st.day+' '+st.g+' م — '+st.hj+' هـ\nوقت التسجيل: '+st.t+'\n—\n'+picks.map((p,i)=>'الرغبة '+ORD[i]+': '+p).join('\n')+'\n—\nمُرسلة عبر نموذج الرغبات';
+}
+const LOGO_B64="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";
+const XL={dark:'0B5F5C',main:'0E8F8A',light:'E3F4F3',zebra:'F5FBFA',border:'B9D9D7',gold:'C9A227'};
+async function buildXlsx(name,picks,st){
+  if(!window.ExcelJS) return null;
+  const wb=new ExcelJS.Workbook();
+  wb.creator='فيصل الدغريري';wb.lastModifiedBy='فيصل الدغريري';wb.company='الإدارة العامة للتعليم بمنطقة الرياض — نطاق محافظة الخرج';wb.created=new Date();
+  const ws=wb.addWorksheet('الرغبات',{views:[{rightToLeft:true,showGridLines:false}],pageSetup:{orientation:'portrait',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0,horizontalCentered:true}});
+  ws.getColumn(1).width=8;ws.getColumn(2).width=18;ws.getColumn(3).width=52;
+  const logoId=wb.addImage({base64:LOGO_B64,extension:'png'});
+  const ncols=3;
+  const thin={style:'thin',color:{argb:'FF'+XL.border}},border={top:thin,left:thin,bottom:thin,right:thin};
+  ['المملكة العربية السعودية','وزارة التعليم','الإدارة العامة للتعليم بمنطقة الرياض','نطاق محافظة الخرج'].forEach((line,i)=>{
+    ws.mergeCells(i+1,1,i+1,ncols);const c=ws.getCell(i+1,1);c.value=line;
+    c.alignment={horizontal:'center',vertical:'middle'};c.font={name:'Arial',bold:true,size:i===1?15:12,color:{argb:'FF'+XL.dark}};ws.getRow(i+1).height=i<2?26:22;
+  });
+  for(let c=1;c<=ncols;c++) ws.getCell(5,c).border={top:{style:'medium',color:{argb:'FF'+XL.gold}}};
+  ws.addImage(logoId,{tl:{col:0.1,row:0.1},ext:{width:92,height:47},editAs:'oneCell'});
+  ws.getRow(5).height=6;
+  ws.mergeCells(6,1,6,ncols);const t=ws.getCell(6,1);t.value='رغبات مشرفي دعم التميز (بنين)';
+  t.alignment={horizontal:'center',vertical:'middle'};t.font={name:'Arial',bold:true,size:14,color:{argb:'FFFFFFFF'}};t.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+XL.dark}};ws.getRow(6).height=30;
+  const info=[['المشرف',name],['تاريخ التسجيل',st.day+' '+st.g+' م — '+st.hj],['وقت التسجيل',st.t]];
+  info.forEach((p,i)=>{
+    const r=7+i;ws.mergeCells(r,2,r,ncols);
+    const a=ws.getCell(r,1);
+    a.value=p[0];a.font={name:'Arial',bold:true,size:10.5,color:{argb:'FF'+XL.dark}};a.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+XL.light}};a.alignment={horizontal:'center',vertical:'middle'};a.border=border;
+    const b=ws.getCell(r,2);b.value=p[1];b.font={name:'Arial',size:10.5,color:{argb:'FF1F2D2D'}};b.alignment={horizontal:'right',vertical:'middle',readingOrder:'rtl'};b.border=border;
+    ws.getRow(r).height=22;
+  });
+  const hr=ws.getRow(11);hr.height=28;
+  ['م','الرغبة','المدرسة'].forEach((x,i)=>{const c=hr.getCell(i+1);c.value=x;c.font={name:'Arial',bold:true,size:11,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+XL.main}};c.alignment={horizontal:'center',vertical:'middle'};c.border=border});
+  picks.forEach((p,i)=>{
+    const r=ws.getRow(12+i);r.height=24;
+    [i+1,'الرغبة '+ORD[i],p].forEach((v,j)=>{const c=r.getCell(j+1);c.value=v;c.font={name:'Arial',size:10.5,bold:j===1,color:{argb:'FF1F2D2D'}};c.alignment={horizontal:j===2?'right':'center',vertical:'middle',wrapText:true,readingOrder:'rtl'};c.border=border;if(i%2===1)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+XL.zebra}}});
+  });
+  const fr=12+picks.length+1;ws.mergeCells(fr,1,fr,ncols);const f=ws.getCell(fr,1);
+  f.value='الإدارة العامة للتعليم بمنطقة الرياض — نطاق محافظة الخرج';f.alignment={horizontal:'center'};f.font={name:'Arial',size:9,italic:true,color:{argb:'FF55706F'}};
+  return await wb.xlsx.writeBuffer();
+}
+function b64(buf){let s='';const u=new Uint8Array(buf);for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+let lastXlsx=null;
+$('send').addEventListener('click',async()=>{
   const picks=vals(),name=who.value;
   if(new Set(picks).size!==5){say('لا يمكن تكرار مدرسة في أكثر من رغبة.','err');return}
   if(!window.emailjs){say('تعذّر الاتصال بخدمة الإرسال، تحقّق من الاتصال بالإنترنت.','err');return}
   const b=$('send');b.disabled=true;b.textContent='جارِ الإرسال…';
-  Promise.race([emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{name:name,title:'رغبات دعم التميز — '+name,message:msgText(name,picks),email:SEND_EMAIL,time:new Date().toLocaleString('ar-SA')}),new Promise((_,rj)=>setTimeout(()=>rj({text:'انتهت مهلة الاتصال'}),20000))]).then(()=>{
-    lastPicks=picks;lastName=name;b.textContent='تم الإرسال ✓';
+  const st=stamp();
+  let xl=null,att='';
+  try{ xl=await buildXlsx(name,picks,st); if(xl) att='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'+b64(xl); }catch(e){ xl=null;att=''; }
+  const params={name:name,title:'رغبات دعم التميز — '+name,message:msgText(name,picks,st),email:SEND_EMAIL,time:st.day+' '+st.g+' — '+st.t};
+  if(att&&att.length<40000){ params.attachment=att; params.attachment_name='رغبات_'+name.split(' ').slice(0,2).join('_')+'.xlsx'; }
+  Promise.race([emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,params),new Promise((_,rj)=>setTimeout(()=>rj({text:'انتهت مهلة الاتصال'}),20000))]).then(()=>{
+    lastPicks=picks;lastName=name;lastXlsx=xl;b.textContent='تم الإرسال ✓';
     show($('formView'),false);
     const dn=$('done');
     dn.querySelector('ol').innerHTML='';
     picks.forEach(p=>{const li=document.createElement('li');li.textContent=p;dn.querySelector('ol').appendChild(li)});
+    $('stampline').textContent='وقت التسجيل: '+st.day+' '+st.g+' م — '+st.t;
+    show($('xlsxbtn'),!!xl);
     show(dn,true);
   },err=>{
     b.textContent='إرسال الرغبات';b.disabled=false;
-    const st=err&&err.status,det=err&&(err.text||err.message)||'';
-    const why=st===429?'تجاوزت خدمة البريد حدّها المسموح، حاول لاحقاً.':st===403||st===412?'خدمة البريد رفضت الطلب (إعدادات الحساب).':'';
-    say('تعذّر إرسال البريد. '+why+' ['+(st||'')+' '+det+'] أعد المحاولة.','err');
+    const s=err&&err.status,det=err&&(err.text||err.message)||'';
+    const why=s===429?'تجاوزت خدمة البريد حدّها المسموح، حاول لاحقاً.':s===403||s===412?'خدمة البريد رفضت الطلب (إعدادات الحساب).':'';
+    say('تعذّر إرسال البريد. '+why+' ['+(s||'')+' '+det+'] أعد المحاولة.','err');
   });
 });
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 $('pdf').addEventListener('click',()=>{
   if(!lastPicks)return;
   const rows=lastPicks.map((p,i)=>'<tr><td>الرغبة '+ORD[i]+'</td><td>'+esc(p)+'</td></tr>').join('');
-  const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>رغبات '+esc(lastName)+'</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:32px;color:#12202b}h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#555;font-weight:normal;margin-top:0}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px 10px;text-align:right}th{background:#e3f1ec}</style></head><body><h1>رغبات دعم التميز — '+esc(lastName)+'</h1><h2>'+esc(new Date().toLocaleDateString('ar-SA'))+'</h2><table><thead><tr><th>الرغبة</th><th>المدرسة</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>';
+  const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>رغبات '+esc(lastName)+'</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:32px;color:#12202b}h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#555;font-weight:normal;margin-top:0}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px 10px;text-align:right}th{background:#e3f1ec}</style></head><body><h1>رغبات دعم التميز — '+esc(lastName)+'</h1><h2>'+esc((()=>{const s=stamp();return s.day+' '+s.g+' م — '+s.t})())+'</h2><table><thead><tr><th>الرغبة</th><th>المدرسة</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>';
   const w=window.open('','_blank');
   if(!w){alert('يرجى السماح بالنوافذ المنبثقة لعرض النسخة وحفظها PDF');return}
   w.document.open();w.document.write(html);w.document.close();
 });
+$('xlsxbtn').addEventListener('click',()=>{if(!lastXlsx)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lastXlsx],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download='رغبات_'+lastName.split(' ').slice(0,2).join('_')+'.xlsx';document.body.appendChild(a);a.click();a.remove()});
 $('again').addEventListener('click',()=>{who.value='';show($('done'),false);show($('formView'),true);ranks.style.display='none';show($('note'),false);show($('send'),false);show($('status'),false);$('send').textContent='إرسال الرغبات'});
 </script></body></html>
