@@ -204,6 +204,20 @@ $('again').addEventListener('click',()=>{who.value='';show($('done'),false);show
     if(x!==null && n>=x) return {open:false,why:'after',at:x,msg:c.message};
     return {open:true,closes:x};
   }
+  function left2(l){ var m=Math.max(1,Math.ceil(l/60000)), h=Math.floor(m/60), mm=m%60, p=[];
+    if(h>0) p.push(h===1?'ساعة':(h===2?'ساعتان':h+(h<11?' ساعات':' ساعة')));
+    if(mm>0) p.push(mm===1?'دقيقة':(mm===2?'دقيقتان':mm+(mm<11?' دقائق':' دقيقة')));
+    return p.join(' و '); }
+  var warned=false;
+  function warnOnce(left,closes){
+    if(warned) return; try{ if(sessionStorage.getItem('warn_'+KEY+'_'+closes)) { warned=true; return; } }catch(e){}
+    warned=true; try{ sessionStorage.setItem('warn_'+KEY+'_'+closes,'1'); }catch(e){}
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl;font-family:Tajawal,Segoe UI,Tahoma,sans-serif;';
+    d.innerHTML='<div style="background:#fff;color:#12202b;border-radius:16px;max-width:420px;width:100%;padding:24px 20px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);border-top:6px solid #C9A227"><div style="font-size:38px;line-height:1">⏰</div><h3 style="margin:8px 0 6px;color:#8f2d20;font-size:20px">قارب موعد إغلاق التسجيل</h3><p style="margin:0 0 6px;line-height:1.9;font-size:15px">يتبقى <b>'+left2(left)+'</b> على إغلاق التسجيل.<br>'+fmt(closes)+'</p><p style="margin:0 0 14px;color:#5b6f6c;font-size:13px">يُرجى إكمال التسجيل وإرساله قبل الموعد.</p><button style="background:#0B5F5C;color:#fff;border:0;border-radius:10px;padding:10px 26px;font:700 15px Tajawal,Segoe UI,Tahoma,sans-serif;cursor:pointer">حسناً</button></div>';
+    d.querySelector('button').onclick=function(){ d.remove(); };
+    document.body.appendChild(d);
+  }
   function box(html,bg,fg){ var d=document.createElement('div'); d.style.cssText='direction:rtl;font-family:Tajawal,Segoe UI,Tahoma,sans-serif;'; d.innerHTML=html; return d; }
   function render(){
     var s=state(), wrap=document.querySelector('.wrap');
@@ -227,8 +241,11 @@ $('again').addEventListener('click',()=>{who.value='';show($('done'),false);show
       if(overlay){ overlay.style.display='none'; overlay.hidden=true; }
       if(wrap){ wrap.removeAttribute('inert'); wrap.style.visibility=''; }
       if(s.closes){
-        if(!banner){ banner=document.createElement('div'); banner.style.cssText='position:sticky;top:0;z-index:9999;background:#FBEDD8;color:#7a4d00;text-align:center;padding:8px 12px;font:600 13px Tajawal,Segoe UI,Tahoma,sans-serif;direction:rtl;border-bottom:1px solid #e8cf9f'; document.body.insertBefore(banner,document.body.firstChild); }
-        banner.textContent='يُغلق التسجيل: '+fmt(s.closes);
+        var left=s.closes-Date.now(), near=left<=5*3600*1000, hot=left<=3600*1000;
+        if(!banner){ banner=document.createElement('div'); document.body.insertBefore(banner,document.body.firstChild); }
+        banner.style.cssText='position:sticky;top:0;z-index:9999;text-align:center;padding:'+(near?'11px 12px':'8px 12px')+';font:'+(near?'700 14px':'600 13px')+' Tajawal,Segoe UI,Tahoma,sans-serif;direction:rtl;border-bottom:1px solid '+(hot?'#d9a0a0':'#e8cf9f')+';background:'+(hot?'#F7E5E2':'#FBEDD8')+';color:'+(hot?'#8f2d20':'#7a4d00');
+        banner.textContent=near?('⏰ تنبيه: يتبقى على إغلاق التسجيل '+left2(left)+' — يُغلق '+fmt(s.closes)):('يُغلق التسجيل: '+fmt(s.closes));
+        if(near) warnOnce(left,s.closes);
       } else if(banner){ banner.remove(); banner=null; }
     }
   }
