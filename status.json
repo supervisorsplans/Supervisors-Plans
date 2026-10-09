@@ -1,15 +1,15 @@
 {
-  "updatedAt": "2026-10-09T15:30:00+03:00",
+  "updatedAt": "2026-10-09T15:45:34+03:00",
   "plans": {
     "mode": "schedule",
-    "opensAt": "",
-    "closesAt": "",
+    "opensAt": "2026-10-25T07:00",
+    "closesAt": "2026-10-30T14:00",
     "message": ""
   },
   "wishes": {
     "mode": "schedule",
     "opensAt": "",
     "closesAt": "",
-    "message": ""
+    "message": "تم إغلاق الرابط نظراً لانتهاء الفترة المحددة"
   }
 }
