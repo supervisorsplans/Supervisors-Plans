@@ -1,0 +1,15 @@
+{
+  "updatedAt": "2026-10-09T15:30:00+03:00",
+  "plans": {
+    "mode": "schedule",
+    "opensAt": "",
+    "closesAt": "",
+    "message": ""
+  },
+  "wishes": {
+    "mode": "schedule",
+    "opensAt": "",
+    "closesAt": "",
+    "message": ""
+  }
+}

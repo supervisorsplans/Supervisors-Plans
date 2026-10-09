@@ -424,5 +424,62 @@ document.addEventListener('change', function(e){
 
 render();
 </script>
+<script>
+/* بوابة فتح/إغلاق التسجيل — تقرأ status.json وتُغلق النموذج تلقائياً حسب الإعدادات والمواعيد (توقيت الرياض) */
+(function(){
+  var KEY='plans', cfg=null, overlay=null, banner=null;
+  function ms(t){ if(!t) return null; var v=Date.parse(t+':00+03:00'); return isNaN(v)?null:v; }
+  function fmt(v){
+    var d=new Date(v), o={timeZone:'Asia/Riyadh'};
+    try{
+      var g=new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{timeZone:'Asia/Riyadh',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);
+      var h=new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn',{timeZone:'Asia/Riyadh',day:'numeric',month:'long',year:'numeric'}).format(d).replace(/[‎‏]/g,'');
+      var t=new Intl.DateTimeFormat('ar-SA-u-nu-latn',{timeZone:'Asia/Riyadh',hour:'numeric',minute:'2-digit',hour12:true}).format(d);
+      return g+' م — '+h+' — الساعة '+t;
+    }catch(e){ return d.toLocaleString(); }
+  }
+  function state(){
+    var c=cfg&&cfg[KEY]; if(!c) return {open:true};
+    if(c.mode==='closed') return {open:false,why:'manual',msg:c.message};
+    if(c.mode==='open') return {open:true};
+    var o=ms(c.opensAt), x=ms(c.closesAt), n=Date.now();
+    if(o!==null && n<o) return {open:false,why:'before',at:o,msg:c.message};
+    if(x!==null && n>=x) return {open:false,why:'after',at:x,msg:c.message};
+    return {open:true,closes:x};
+  }
+  function box(html,bg,fg){ var d=document.createElement('div'); d.style.cssText='direction:rtl;font-family:Tajawal,Segoe UI,Tahoma,sans-serif;'; d.innerHTML=html; return d; }
+  function render(){
+    var s=state(), wrap=document.querySelector('.wrap');
+    if(!s.open){
+      if(!overlay){
+        overlay=document.createElement('div');
+        overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(11,95,92,.94);display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl;font-family:Tajawal,Segoe UI,Tahoma,sans-serif;';
+        document.body.appendChild(overlay);
+      }
+      var title=s.why==='before'?'التسجيل لم يُفتح بعد':(s.why==='after'?'انتهى موعد التسجيل':'التسجيل مغلق حالياً');
+      var line=s.why==='before'?('يُفتح التسجيل: '+fmt(s.at)):(s.why==='after'?('أُغلق التسجيل: '+fmt(s.at)):'سيُعاد فتح التسجيل عند الإعلان عن ذلك.');
+      overlay.innerHTML='<div style="background:#fff;color:#12202b;border-radius:16px;max-width:460px;width:100%;padding:28px 22px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);border-top:6px solid #C9A227">'+
+        '<div style="font-size:42px;line-height:1">🔒</div><h2 style="margin:10px 0 6px;color:#0B5F5C;font-size:22px">'+title+'</h2>'+
+        '<p style="margin:0 0 8px;color:#3b4552;line-height:1.9;font-size:15px">'+line+'</p>'+
+        (s.msg?'<p style="margin:8px 0 0;background:#E3F4F3;border-radius:10px;padding:10px;color:#0B5F5C;font-size:14px">'+String(s.msg).replace(/[<>&]/g,'')+'</p>':'')+
+        '<p style="margin:14px 0 0;color:#6b7684;font-size:12px">الإدارة العامة للتعليم بمنطقة الرياض — نطاق محافظة الخرج</p></div>';
+      overlay.hidden=false; overlay.style.display='flex';
+      if(wrap){ wrap.setAttribute('inert',''); wrap.style.visibility='hidden'; }
+      if(banner){ banner.remove(); banner=null; }
+    } else {
+      if(overlay){ overlay.style.display='none'; overlay.hidden=true; }
+      if(wrap){ wrap.removeAttribute('inert'); wrap.style.visibility=''; }
+      if(s.closes){
+        if(!banner){ banner=document.createElement('div'); banner.style.cssText='position:sticky;top:0;z-index:9999;background:#FBEDD8;color:#7a4d00;text-align:center;padding:8px 12px;font:600 13px Tajawal,Segoe UI,Tahoma,sans-serif;direction:rtl;border-bottom:1px solid #e8cf9f'; document.body.insertBefore(banner,document.body.firstChild); }
+        banner.textContent='يُغلق التسجيل: '+fmt(s.closes);
+      } else if(banner){ banner.remove(); banner=null; }
+    }
+  }
+  function load(){
+    fetch('status.json?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).then(function(j){ if(j){ cfg=j; } render(); }).catch(function(){ render(); });
+  }
+  load(); setInterval(load,60000); setInterval(render,15000);
+})();
+</script>
 </body>
 </html>
