@@ -150,12 +150,12 @@ const HOLIDAYS = [
   {start:'2026-11-20', end:'2026-11-28', label:'إجازة الخريف', type:'semester'},
   {start:'2026-11-29', end:'2026-11-29', label:'إجازة إضافية (1448/06/19هـ)', type:'additional'},
   {start:'2027-01-07', end:'2027-01-07', label:'إجازة إضافية (1448/07/29هـ)', type:'additional'},
-  {start:'2027-01-08', end:'2027-01-21', label:'إجازة منتصف العام الدراسي', type:'semester'},
+  {start:'2027-01-08', end:'2027-01-16', label:'إجازة منتصف العام الدراسي', type:'semester'},
   {start:'2027-02-19', end:'2027-02-22', label:'إجازة يوم التأسيس', type:'national'},
   {start:'2027-02-27', end:'2027-03-13', label:'إجازة عيد الفطر (تقديرية وفق رؤية الهلال)', type:'religious'},
   {start:'2027-04-11', end:'2027-04-11', label:'إجازة إضافية (1448/11/04هـ)', type:'additional'},
   {start:'2027-05-07', end:'2027-05-22', label:'إجازة عيد الأضحى', type:'religious'},
-  {start:'2027-06-24', end:'2027-08-20', label:'الإجازة الصيفية', type:'summer'},
+  {start:'2027-06-25', end:'2027-08-14', label:'الإجازة الصيفية', type:'summer'},
 ];
 function holidayFor(dateStr){ return dateStr ? HOLIDAYS.find(h=> dateStr>=h.start && dateStr<=h.end) : null; }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
