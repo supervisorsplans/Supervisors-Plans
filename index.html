@@ -277,26 +277,84 @@ function renderDone(){
   '</div>';
 }
 
-function printMyPlan(){
+function planDocHtml(){
   const sp = supById(state.supervisor);
   const rows = state.visits.slice().sort((a,b)=>a.date.localeCompare(b.date));
-  const trRows = rows.map(function(v){
+  const trRows = rows.map(function(v,i){
     const sc = SEED.schools.find(s=>s.id===v.school);
-    return '<tr><td>'+esc(fmtDate(v.date))+'</td><td>'+esc(weekdayArabic(v.date))+'</td><td>'+esc(sc?sc.name:'')+'</td></tr>';
+    return '<tr><td style="width:36px;text-align:center">'+(i+1)+'</td><td>'+esc(fmtDate(v.date))+'</td><td>'+esc(weekdayArabic(v.date))+'</td><td>'+esc(sc?sc.name:'')+'</td></tr>';
   }).join('');
   const subtitle = sp ? (isSpecialist(sp.id) ? (sp.domain||'اختصاصي') : ('النطاق '+sp.nitaq)) : '';
-  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'+
-    '<title>خطة زيارات '+esc(sp?sp.name:'')+'</title>'+
-    '<style>body{font-family:Tahoma,Arial,sans-serif; padding:32px; color:#12202b;} h1{font-size:20px;margin-bottom:4px;} h2{font-size:14px;color:#555;font-weight:normal;margin-top:0;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #ccc;padding:8px 10px;text-align:right;font-size:13px;} th{background:#f2f2f2;}</style>'+
-    '</head><body>'+
+  const css = '<style>.pd{font-family:Tahoma,Arial,sans-serif;direction:rtl;color:#12202b;background:#fff;padding:34px 36px;width:794px;box-sizing:border-box}.pd h1{font-size:21px;margin:0 0 4px;color:#0A4A57}.pd h2{font-size:14px;color:#555;font-weight:normal;margin:0}.pd .bar{height:5px;background:linear-gradient(90deg,#0A4A57,#0F7B86,#C9A24A);margin:14px 0 6px;border-radius:3px}.pd table{width:100%;border-collapse:collapse;margin-top:16px}.pd th,.pd td{border:1px solid #b8d4d7;padding:8px 10px;text-align:right;font-size:13px}.pd th{background:#0F7B86;color:#fff}.pd tr:nth-child(even) td{background:#E7F3F4}.pd .ft{margin-top:18px;font-size:11px;color:#667}</style>';
+  return css+'<div class="pd">'+
+    '<div style="font-size:12px;color:#0A4A57;font-weight:700">الفريق التنفيذي بمحافظة الخرج</div>'+
     '<h1>خطة زيارات — '+esc(sp?sp.name:'')+'</h1>'+
     '<h2>'+esc(subtitle)+' — '+esc(monthLabel(state.month))+' — عدد أيام الزيارة: '+rows.length+'</h2>'+
-    '<table><thead><tr><th>التاريخ</th><th>اليوم</th><th>المدرسة</th></tr></thead><tbody>'+trRows+'</tbody></table>'+
-    '<script>window.onload=function(){ setTimeout(function(){ window.print(); }, 300); };<\/script>'+
-    '</body></html>';
-  const w = window.open('', '_blank');
-  if(!w){ alert('يرجى السماح بالنوافذ المنبثقة لعرض الخطة للطباعة/التحميل كـ PDF'); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+    '<div class="bar"></div>'+
+    '<table><thead><tr><th>م</th><th>التاريخ</th><th>اليوم</th><th>المدرسة</th></tr></thead><tbody>'+trRows+'</tbody></table>'+
+    '<div class="ft">رابط رفع خطط العمل — الفريق التنفيذي بمحافظة الخرج</div></div>';
+}
+function planFileName(){
+  const sp = supById(state.supervisor);
+  return ('خطة زيارات '+(sp?sp.name:'')+' - '+monthLabel(state.month)+'.pdf').replace(/[\\\/:*?"<>|]/g,' ');
+}
+/* عرض قابل للطباعة داخل نفس الصفحة (بدون نوافذ منبثقة) كخيار احتياطي */
+function showPlanFallback(msg){
+  let ov = document.getElementById('planOverlay'); if(ov) ov.remove();
+  ov = document.createElement('div'); ov.id='planOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:#fff;overflow:auto;direction:rtl;';
+  ov.innerHTML = '<style>#planOverlay .pd{width:auto!important;max-width:794px}@media print{body>*:not(#planOverlay){display:none!important}#planOverlay .nop{display:none!important}#planOverlay{position:static!important}}</style>'+
+    '<div class="nop" style="position:sticky;top:0;background:#0A4A57;color:#fff;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-family:Tahoma,Arial,sans-serif;font-size:13px">'+
+    '<span style="flex:1;min-width:180px">'+esc(msg||'')+'</span>'+
+    '<button id="planPrintBtn" style="padding:8px 16px;border:0;border-radius:8px;background:#C9A24A;color:#12202b;font-weight:700">طباعة / حفظ PDF</button>'+
+    '<button id="planCloseBtn" style="padding:8px 16px;border:0;border-radius:8px;background:#fff;color:#0A4A57;font-weight:700">إغلاق</button></div>'+
+    '<div style="max-width:794px;margin:0 auto">'+planDocHtml()+'</div>';
+  document.body.appendChild(ov);
+  document.getElementById('planPrintBtn').onclick=function(){ window.print(); };
+  document.getElementById('planCloseBtn').onclick=function(){ ov.remove(); };
+}
+function loadScriptOnce(src){
+  return new Promise(function(res,rej){
+    const ex = document.querySelector('script[data-lib="'+src+'"]'); if(ex){ ex.addEventListener('load',res); if(ex.dataset.done) res(); return; }
+    const sc=document.createElement('script'); sc.src=src; sc.dataset.lib=src;
+    sc.onload=function(){ sc.dataset.done='1'; res(); }; sc.onerror=function(){ rej(new Error('load '+src)); };
+    document.head.appendChild(sc);
+  });
+}
+async function printMyPlan(){
+  const btn = document.getElementById('downloadPlanPdfBtn');
+  const oldHtml = btn ? btn.innerHTML : '';
+  if(btn){ btn.disabled = true; btn.innerHTML = '<span class="spin"></span>جارِ تجهيز الملف…'; }
+  let host;
+  try{
+    if(!window.html2canvas) await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    if(!(window.jspdf && window.jspdf.jsPDF)) await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    host = document.createElement('div');
+    host.style.cssText='position:fixed;left:-10000px;top:0;width:794px;background:#fff;';
+    host.innerHTML = planDocHtml(); document.body.appendChild(host);
+    if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(_){} }
+    const canvas = await window.html2canvas(host.querySelector('.pd'), { scale:2, backgroundColor:'#ffffff', useCORS:true });
+    const pdf = new window.jspdf.jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+    const pageW = 210, pageH = 297;
+    const pxPerPage = Math.floor(canvas.width * pageH / pageW);
+    let y = 0, first = true;
+    while(y < canvas.height){
+      const h = Math.min(pxPerPage, canvas.height - y);
+      const part = document.createElement('canvas'); part.width = canvas.width; part.height = h;
+      const ctx = part.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,part.width,part.height);
+      ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+      if(!first) pdf.addPage();
+      pdf.addImage(part.toDataURL('image/jpeg',0.92), 'JPEG', 0, 0, pageW, h * pageW / canvas.width);
+      first = false; y += h;
+    }
+    pdf.save(planFileName());
+  }catch(err){
+    console.error(err);
+    showPlanFallback('تعذّر إنشاء الملف تلقائياً. اضغط «طباعة / حفظ PDF» واختر «حفظ كـ PDF».');
+  }finally{
+    if(host) host.remove();
+    if(btn){ btn.disabled = false; btn.innerHTML = oldHtml; }
+  }
 }
 
 function buildMessage(){
