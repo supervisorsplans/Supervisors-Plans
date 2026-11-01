@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-12T09:30:00+03:00",
+  "updatedAt": "2026-11-01T08:45:00+03:00",
   "plans": {
     "mode": "schedule",
-    "opensAt": "2026-10-25T07:00",
-    "closesAt": "2026-10-30T14:00",
+    "opensAt": "2026-11-01T08:45",
+    "closesAt": "2026-11-01T13:45",
     "message": ""
   },
   "wishes": {
