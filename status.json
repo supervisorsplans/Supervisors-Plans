@@ -17,5 +17,11 @@
     "opensAt": "",
     "closesAt": "",
     "message": ""
+  },
+  "labs": {
+    "mode": "open",
+    "opensAt": "",
+    "closesAt": "",
+    "message": ""
   }
 }
